@@ -123,7 +123,9 @@ def main():
             else:
                 save_np(cropped_normalized_image_np, preprocessed_image_path)
 
-            remove_nii_files(preprocessed_image_path)
+
+            if config["remove_nii"]:
+                remove_nii_files(preprocessed_image_path)
 
             print(
                 f' Subject {subject_nb}; Image {image_nb}, '

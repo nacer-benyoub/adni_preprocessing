@@ -10,5 +10,6 @@ def get_config_dict():
     config["reference_atlas_location"] = Path(f'{os.environ["FSLDIR"]}/data/standard/MNI152_T1_{resolution_mm}mm_brain.nii.gz')
     config["axial_size"] = 90
     config["save_2d"] = True
+    config["remove_nii"] = False
     return config
     
