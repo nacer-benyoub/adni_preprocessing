@@ -1,3 +1,4 @@
+from email.mime import image
 import numpy as np
 from pathlib import Path
 import os
@@ -85,29 +86,49 @@ def main():
     
     config = get_config_dict()
 
-    
     subject_folder_list = sorted(list(config["data_path"].glob('*')))
-    # subjects_list = [subject_folder.name for subject_folder in subject_folder_list]
-    nb_subjects = len(subject_folder_list)
-    nb_images = 0
-    for subject_nb, subject_folder in enumerate(subject_folder_list):
+    
+    total_image_count = len(list(config["data_path"].glob("**/*.nii")))
+    
+    subject_count = len(subject_folder_list)
+    total_processed_images_count = 0
+    for subject_index, subject_folder in enumerate(subject_folder_list):
+
+        if subject_index == config["subject_limit"]:
+            break
+        
+        print()
+        print(f"Subject {subject_folder.name} ({subject_index + 1}/{subject_count}):")
+        print("-" * 80)
+        
         subject_image_files = sorted(subject_folder.glob("**/*.nii"))
         subject_image_files_unique = get_unique_image_file(subject_image_files)
+        subject_image_count = subject_image_files_unique.shape[0]
 
-        nb_images += subject_image_files_unique.shape[0]
 
-        for image_nb, image_path in enumerate(subject_image_files_unique):
+        for image_index, image_path in enumerate(subject_image_files_unique):
+            
+            subject_processed_images_count = total_image_count + image_index
+            print(f"Processing image {image_path.parent.name} ({image_index + 1}/{subject_image_count}) for subject {subject_folder.name} ...")
+            
             preprocessed_image_path = Path(
-                str(image_path).replace("raw", "preprocessed").replace(".nii", ".nii.gz"))
+                str(image_path).replace("raw", "preprocessed").replace(".nii", ".nii.gz")
+            )
             preprocessed_image_path.parent.mkdir(parents=True, exist_ok=True)
 
-            nb_processed_files = len(list(preprocessed_image_path.parent.glob("**/*.tiff")))
-            if nb_processed_files > 0 and not config["re_process"]:
+            existing_processed_files_count = len(list(preprocessed_image_path.parent.glob("**/*.tiff")))
+            if existing_processed_files_count > 0 and not config["re_process"]:
+                print("Preprocessed images already exist. Skipping...")
+                print("-" * 40)
                 continue
 
             start = time.time()
             try:
+                print()
+                print("======== FSL output ========")
                 preprocessed_image_path_fsl = run_fsl_processing(image_path, preprocessed_image_path, config["reference_atlas_location"])
+                print("======== FSL output ========")
+                print()
                 preprocessed_image_np = load_np_image(preprocessed_image_path_fsl)
             except:
                 with open('load_error_list.txt', 'a') as the_file:
@@ -117,23 +138,30 @@ def main():
             normalized_image_np = intensity_normalization(preprocessed_image_np)
 
             if config["axial_size"] is not None:
-                cropped_normalized_image_np = cropping(normalized_image_np,axial_size = config["axial_size"])
+                print(f"Image shape before cropping: {normalized_image_np.shape}")
+                cropped_normalized_image_np = cropping(
+                    normalized_image_np,
+                    axial_size = config["axial_size"],
+                    central_crop_along_z = False
+                )
+                print(f"Image shape after cropping: {cropped_normalized_image_np.shape}")
             if config["save_2d"]:
                 save_2d(cropped_normalized_image_np, preprocessed_image_path)
             else:
                 save_np(cropped_normalized_image_np, preprocessed_image_path)
 
+            total_processed_images_count += 1
 
             if config["remove_nii"]:
                 remove_nii_files(preprocessed_image_path)
 
-            print(
-                f' Subject {subject_nb}; Image {image_nb}, '
-                f'processing time: {datetime.timedelta(seconds=time.time() - start)}')
-            print(f" Subject {subject_folder.name}, image {preprocessed_image_path.parent.name}")
+            print(f'Processing done for image {preprocessed_image_path.parent.name}')
+            print(f'Elapsed time: {datetime.timedelta(seconds=time.time() - start)}')
+            print("-" * 40)
+            print(f"\n\t\tProgress (/total image count): \t({total_processed_images_count}/{total_image_count})\n")
 
 
-    print(f'Total processing time: {datetime.timedelta(seconds=time.time() - total_start)}')
+    print(f'\nTotal processing time: {datetime.timedelta(seconds=time.time() - total_start)}')
 
 
 if __name__ == "__main__":
