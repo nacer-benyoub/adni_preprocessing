@@ -32,14 +32,31 @@ def intensity_normalization(volume: np.array, clip_ratio: float = 99.5):
 
 
 def run_fsl_processing(image_path: Path, preprocessed_image_path: Path, ref: Path):
-    os.system(f'fslreorient2std {image_path} {preprocessed_image_path}')
-    os.system(f'robustfov -i {preprocessed_image_path} -r {preprocessed_image_path}')
-    os.system(f'bet {preprocessed_image_path} {preprocessed_image_path} -R')
-    os.system(f'flirt -in {preprocessed_image_path} -ref {ref} -out {preprocessed_image_path}')
+    # Remove all suffixes
+    path_no_ext = preprocessed_image_path.with_suffix('')
+    while path_no_ext.suffixes:
+        path_no_ext = path_no_ext.with_suffix('')
+    
+    orient_path = path_no_ext.with_name(f'{path_no_ext.stem}_orient.nii.gz')
+    os.system(f'fslreorient2std {image_path} {orient_path}')
+    
+    fov_path = path_no_ext.with_name(f'{path_no_ext.stem}_fov.nii.gz')
+    os.system(f'robustfov -i {orient_path} -r {fov_path}')
+    
+    bet_path = path_no_ext.with_name(f'{path_no_ext.stem}_bet.nii.gz')
+    os.system(f'bet {fov_path} {bet_path} -R')
+    
+    os.system(f'flirt -in {bet_path} -ref {ref} -out {preprocessed_image_path}')
+    
     # "fast" saves output file as {file_name}_restore.nii.gz
-    os.system(f'fast --nopve -B -o {preprocessed_image_path} {preprocessed_image_path}')
-    preprocessed_image_path_fsl = Path(str(preprocessed_image_path).replace(".nii", "_restore.nii"))
-    return preprocessed_image_path_fsl
+    # os.system(f'fast --nopve -B -o {preprocessed_image_path} {preprocessed_image_path}')
+    # preprocessed_image_path_fsl = Path(str(preprocessed_image_path).replace(".nii", "_restore.nii"))
+    
+    # Remove the temp nii files
+    for path in [orient_path, fov_path, bet_path]:
+        path.unlink()
+    
+    return preprocessed_image_path
 
 
 def load_np_image(preprocessed_image_path: Path) -> np.array:
@@ -49,21 +66,22 @@ def load_np_image(preprocessed_image_path: Path) -> np.array:
     return preprocessed_image_np
 
 
-def cropping(image: np.array, axial_size: int = 90, central_crop_along_z: bool = True):
+def cropping(image: np.array, axial_size: int = 180, central_crop_along_z: bool = True, central_crop_size: int = 30):
     init_shape = image.shape
     cropped_image = image
     if axial_size is not None:
         cropped_image = cropped_image[:,
-                        init_shape[1] // 2 - axial_size // 2:init_shape[1] // 2 + axial_size // 2,
+                         init_shape[1] // 2 - axial_size // 2:init_shape[1] // 2 + axial_size // 2,
                         init_shape[2] // 2 - axial_size // 2:init_shape[2] // 2 + axial_size // 2]
     if central_crop_along_z:
-        cropped_image = cropped_image[30:60, ...]
+        cropped_image = cropped_image[
+            init_shape[0] // 2 - central_crop_size // 2:init_shape[0] // 2 + central_crop_size // 2,
+            ...]
 
     return cropped_image
 
 
 def save_np(image_np, preprocessed_image_path):
-    # preprocessed_image_path = preprocessed_image_path[:preprocessed_image_path.rfind(".")]
     preprocessed_image_path = str(preprocessed_image_path).replace(".nii.gz", "")
 
     data_dict = {"image": image_np}
@@ -86,10 +104,8 @@ def main():
     
     config = get_config_dict()
 
-    subject_folder_list = sorted(list(config["data_path"].glob('*')))
-    
     total_image_count = len(list(config["data_path"].glob("**/*.nii")))
-    
+    subject_folder_list = sorted(list(config["data_path"].glob('*')))
     subject_count = len(subject_folder_list)
     total_processed_images_count = 0
     for subject_index, subject_folder in enumerate(subject_folder_list):
@@ -105,19 +121,19 @@ def main():
         subject_image_files_unique = get_unique_image_file(subject_image_files)
         subject_image_count = subject_image_files_unique.shape[0]
 
-
         for image_index, image_path in enumerate(subject_image_files_unique):
             
             subject_processed_images_count = total_image_count + image_index
             print(f"Processing image {image_path.parent.name} ({image_index + 1}/{subject_image_count}) for subject {subject_folder.name} ...")
             
             preprocessed_image_path = Path(
-                str(image_path).replace("raw", "preprocessed").replace(".nii", ".nii.gz")
+                str(image_path).replace("preselected", "preprocessed").replace(".nii", ".nii.gz")
             )
             preprocessed_image_path.parent.mkdir(parents=True, exist_ok=True)
 
             existing_processed_files_count = len(list(preprocessed_image_path.parent.glob("**/*.tiff")))
             if existing_processed_files_count > 0 and not config["re_process"]:
+                total_processed_images_count += 1
                 print("Preprocessed images already exist. Skipping...")
                 print("-" * 40)
                 continue
@@ -126,6 +142,7 @@ def main():
             try:
                 print()
                 print("======== FSL output ========")
+                print()
                 preprocessed_image_path_fsl = run_fsl_processing(image_path, preprocessed_image_path, config["reference_atlas_location"])
                 print("======== FSL output ========")
                 print()
@@ -142,7 +159,8 @@ def main():
                 cropped_normalized_image_np = cropping(
                     normalized_image_np,
                     axial_size = config["axial_size"],
-                    central_crop_along_z = False
+                    central_crop_along_z = config["central_crop_along_z"],
+                    central_crop_size=config["central_crop_size"]
                 )
                 print(f"Image shape after cropping: {cropped_normalized_image_np.shape}")
             if config["save_2d"]:

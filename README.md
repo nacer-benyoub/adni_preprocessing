@@ -46,9 +46,9 @@ For downloading the dataset, we refer the user to the [ADNI website ](http://adn
         3. ADNI1_Complete_2Yr_1.5T
         4. ADNI1_Complete_3Yr_1.5T
 
-Unzip the imaging folders and save them in a single folder called "raw_data" which will have the following structure:
+Unzip the imaging folders and save them in a single folder called "preselected_data" which will have the following structure:
 
-    raw_data/<subject_id>/<preprocessing>/<date>/<acquisition_id>/<file_name>.nii
+    preselected_data/<subject_id>/<preprocessing>/<date>/<acquisition_id>/<file_name>.nii
 
 
 ## Dependencies

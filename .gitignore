@@ -1,5 +1,7 @@
-*.ipynb
 .ipynb_checkpoints
 *.txt
 adni
 __pycache__
+test*
+Notes.md
+*.csv
