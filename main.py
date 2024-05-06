@@ -102,10 +102,8 @@ def remove_nii_files(path: Path):
 def main():
     total_start = time.time()
     
-    config = get_config_dict()
-
-    total_image_count = len(list(config["data_path"].glob("**/*.nii")))
-    subject_folder_list = sorted(list(config["data_path"].glob('*')))
+    total_image_count = len(list(data_path.glob("**/*.nii")))
+    subject_folder_list = sorted(list(data_path.glob('*')))
     subject_count = len(subject_folder_list)
     total_processed_images_count = 0
     for subject_index, subject_folder in enumerate(subject_folder_list):
@@ -115,7 +113,7 @@ def main():
         
         print()
         print(f"Subject {subject_folder.name} ({subject_index + 1}/{subject_count}):")
-        print("-" * 80)
+        print("-" * 60)
         
         subject_image_files = sorted(subject_folder.glob("**/*.nii"))
         subject_image_files_unique = get_unique_image_file(subject_image_files)
@@ -183,4 +181,21 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    
+    config = get_config_dict()
+    
+    for sampling in ['down_sample', 'up_sample']:
+        if config[sampling]:
+            data_path = str(config["raw_data_path"])
+            data_path = Path(data_path.replace("raw_data", f"preselected_data/preselected_data_{sampling}d"))
+            print()
+            print('='*80)
+            print(f'Processing the data in {data_path}')
+            print('='*80)
+            print()
+            main()
+            print()
+            print('='*80)
+            print(f'Completed processing the data in {data_path}')
+            print('='*80)
+            print()

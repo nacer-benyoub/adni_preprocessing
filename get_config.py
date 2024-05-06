@@ -1,9 +1,13 @@
-from pathlib import Path
 import os
+from pathlib import Path
 
 def get_config_dict():
     config = {}
-    config["data_path"] = Path(r'/home/nacer/ADNI_data/ADNI1_Complete_3Yr/preselected_data/')
+    
+    config["down_sample"] = True
+    config["up_sample"] = True
+    
+    config["raw_data_path"] = Path(r'/home/nacer/ADNI_data/ADNI1_Complete_3Yr/raw_data')
     config["re_process"] = False
     
     resolution_mm = 1
