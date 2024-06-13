@@ -85,7 +85,7 @@ def save_np(image_np, preprocessed_image_path):
     preprocessed_image_path = str(preprocessed_image_path).replace(".nii.gz", "")
 
     data_dict = {"image": image_np}
-    np.savez_compressed(preprocessed_image_path, data_dict) # saving into .npz
+    np.savez_compressed(preprocessed_image_path, **data_dict) # saving into .npz
 
 def save_2d(image_np, preprocessed_image_path):
     # preprocessed_image_path = str(preprocessed_image_path)[:str(preprocessed_image_path).rfind(".")]

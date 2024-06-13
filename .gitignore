@@ -5,3 +5,4 @@ __pycache__
 test*
 Notes.md
 *.csv
+!final_image_ids*
