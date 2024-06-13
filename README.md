@@ -63,11 +63,11 @@ then, activate the environment with
 
 
 
-Most image processing methods were done using using the [FSL Neuroimaging](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FSL) tool. You may install it by running:
+Most image processing methods were done using using the [FSL Neuroimaging](https://fsl.fmrib.ox.ac.uk/fsl/docs/#/) tool. You may install it by running:
 
 
     python2 fsl_ubuntu/fslinstaller.py
 
-or by following the instructions [here](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FslInstallation).
+or by following the instructions [here](https://fsl.fmrib.ox.ac.uk/fsl/docs/#/install/index).
 
 
